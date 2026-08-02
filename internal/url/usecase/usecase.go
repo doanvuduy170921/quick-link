@@ -9,6 +9,7 @@ import (
 
 type UseCase interface {
 	GenerateKey(ctx context.Context, value string, expiration int) (string, error)
+	Redirect(ctx context.Context, code string) (string, error)
 }
 
 type useCase struct {
@@ -31,4 +32,12 @@ func (u *useCase) GenerateKey(ctx context.Context, value string, expiration int)
 		return "", err
 	}
 	return key, err
+}
+
+func (u *useCase) Redirect(ctx context.Context, code string) (string, error) {
+	urls, err := u.repo.GetURL(ctx, code)
+	if err != nil {
+		return "", err
+	}
+	return urls, err
 }

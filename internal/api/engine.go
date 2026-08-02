@@ -38,4 +38,5 @@ func (s *Server) SetUpRoutes(redis infrastructure.RedisClient) {
 	urlHandler := http2.NewURLHandler(urlUseCase)
 
 	s.app.POST("/shorten", urlHandler.ShortenURl)
+	s.app.GET("/redirect/:code", urlHandler.Redirect)
 }

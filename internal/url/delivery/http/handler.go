@@ -34,3 +34,15 @@ func (h *URLHandler) ShortenURl(c *gin.Context) {
 		"Message": "Shorten URL successfully!",
 	})
 }
+
+func (h *URLHandler) Redirect(c *gin.Context) {
+	code := c.Param("code")
+
+	url, err := h.useCase.Redirect(c.Request.Context(), code)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+	c.Redirect(http.StatusMovedPermanently, url)
+
+}
