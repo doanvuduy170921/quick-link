@@ -24,7 +24,7 @@ func (h *URLHandler) ShortenURl(c *gin.Context) {
 		return
 	}
 
-	code, err := h.useCase.GenerateKey(c.Request.Context(), input.URL, input.Exp)
+	code, err := h.useCase.GenerateKey(c.Request.Context(), input.URL)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -43,6 +43,6 @@ func (h *URLHandler) Redirect(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
-	c.Redirect(http.StatusMovedPermanently, url)
+	c.Redirect(http.StatusFound, url)
 
 }
