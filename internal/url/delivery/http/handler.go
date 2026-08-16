@@ -1,6 +1,7 @@
 package http
 
 import (
+	url_err "github.com/doanvuduy170921/quick-link/internal/url/error"
 	"github.com/doanvuduy170921/quick-link/internal/url/usecase"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -14,10 +15,9 @@ func NewURLHandler(useCase usecase.UseCase) *URLHandler {
 	return &URLHandler{
 		useCase: useCase,
 	}
-
 }
 
-func (h *URLHandler) ShortenURl(c *gin.Context) {
+func (h *URLHandler) ShortenURL(c *gin.Context) {
 	var input ShortenInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -26,12 +26,12 @@ func (h *URLHandler) ShortenURl(c *gin.Context) {
 
 	code, err := h.useCase.GenerateKey(c.Request.Context(), input.URL)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		url_err.HandlerError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"code":    code,
-		"Message": "Shorten URL successfully!",
+		"message": "Shorten URL successfully!",
 	})
 }
 
@@ -40,9 +40,9 @@ func (h *URLHandler) Redirect(c *gin.Context) {
 
 	url, err := h.useCase.Redirect(c.Request.Context(), code)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		url_err.HandlerError(c, err)
 		return
 	}
-	c.Redirect(http.StatusFound, url)
 
+	c.Redirect(http.StatusFound, url)
 }

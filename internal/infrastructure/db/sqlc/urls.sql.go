@@ -7,23 +7,25 @@ package db
 
 import (
 	"context"
+	"time"
 )
 
 const createURL = `-- name: CreateURL :one
 insert into urls(
-                    short_code,original_url,created_at
+                    short_code,original_url,expires_at,created_at
 )
-values ($1,$2,NOW())
+values ($1,$2,$3,NOW())
 returning id, short_code, original_url, created_at, expires_at
 `
 
 type CreateURLParams struct {
-	ShortCode   string `json:"short_code"`
-	OriginalUrl string `json:"original_url"`
+	ShortCode   string     `json:"short_code"`
+	OriginalUrl string     `json:"original_url"`
+	ExpiresAt   *time.Time `json:"expires_at"`
 }
 
 func (q *Queries) CreateURL(ctx context.Context, arg CreateURLParams) (Url, error) {
-	row := q.db.QueryRow(ctx, createURL, arg.ShortCode, arg.OriginalUrl)
+	row := q.db.QueryRow(ctx, createURL, arg.ShortCode, arg.OriginalUrl, arg.ExpiresAt)
 	var i Url
 	err := row.Scan(
 		&i.ID,
@@ -32,5 +34,24 @@ func (q *Queries) CreateURL(ctx context.Context, arg CreateURLParams) (Url, erro
 		&i.CreatedAt,
 		&i.ExpiresAt,
 	)
+	return i, err
+}
+
+const getOriginalUrlByShortCode = `-- name: GetOriginalUrlByShortCode :one
+SELECT original_url,expires_at
+FROM urls
+WHERE short_code = $1
+AND (expires_at > NOW() OR expires_at IS NULL)
+`
+
+type GetOriginalUrlByShortCodeRow struct {
+	OriginalUrl string     `json:"original_url"`
+	ExpiresAt   *time.Time `json:"expires_at"`
+}
+
+func (q *Queries) GetOriginalUrlByShortCode(ctx context.Context, shortCode string) (GetOriginalUrlByShortCodeRow, error) {
+	row := q.db.QueryRow(ctx, getOriginalUrlByShortCode, shortCode)
+	var i GetOriginalUrlByShortCodeRow
+	err := row.Scan(&i.OriginalUrl, &i.ExpiresAt)
 	return i, err
 }

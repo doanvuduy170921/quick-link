@@ -24,14 +24,14 @@ func main() {
 	// init container
 	cnt, err := container.New(cfg)
 	if err != nil {
-		log.Fatalf("<UNK> Failed to create container: %v", err)
+		log.Fatalf(" Failed to create container: %v", err)
 	}
 
 	defer cnt.Close()
 
 	server := api.NewServer(cfg, cnt.Redis, cnt.Query)
 	if err := server.Start(); err != nil {
-		log.Fatalf("<UNK> Failed to start server: %v", err)
+		log.Fatalf(" Failed to start server: %v", err)
 	}
 
 }
