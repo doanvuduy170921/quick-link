@@ -7,6 +7,7 @@ import (
 
 type UrlRepository interface {
 	CreateURL(ctx context.Context, arg db.CreateURLParams) (db.Url, error)
+	GetOriginalUrlByShortCode(ctx context.Context, shortCode string) (db.GetOriginalUrlByShortCodeRow, error)
 }
 
 func NewUrlRepository(db db.Querier) UrlRepository {
@@ -21,4 +22,8 @@ type urlRepository struct {
 
 func (u *urlRepository) CreateURL(ctx context.Context, arg db.CreateURLParams) (db.Url, error) {
 	return u.db.CreateURL(ctx, arg)
+}
+
+func (u *urlRepository) GetOriginalUrlByShortCode(ctx context.Context, shortCode string) (db.GetOriginalUrlByShortCodeRow, error) {
+	return u.db.GetOriginalUrlByShortCode(ctx, shortCode)
 }

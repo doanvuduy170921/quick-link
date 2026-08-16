@@ -20,9 +20,11 @@ type redisClient struct {
 
 func NewRedisClient(cfg configs.RedisConfig) RedisClient {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     cfg.Addr,
-		Password: cfg.Password,
-		DB:       cfg.DB,
+		Addr:       cfg.Addr,
+		Password:   cfg.Password,
+		DB:         cfg.DB,
+		MaxRetries: cfg.MaxRetries,
+		PoolSize:   cfg.PoolSize,
 	})
 
 	return &redisClient{

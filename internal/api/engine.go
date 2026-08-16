@@ -38,6 +38,6 @@ func (s *Server) SetUpRoutes(redis infrastructure.RedisClient, store db.Querier)
 	urlUseCase := usecase.NewUseCase(urlRepo, redis)
 	urlHandler := http2.NewURLHandler(urlUseCase)
 
-	s.app.POST("/shorten", urlHandler.ShortenURl)
+	s.app.POST("/shorten", urlHandler.ShortenURL)
 	s.app.GET("/redirect/:code", urlHandler.Redirect)
 }

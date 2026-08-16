@@ -1,5 +1,5 @@
 package http
 
 type ShortenInput struct {
-	URL string `json:"url"`
+	URL string `json:"url" binding:"required,url"`
 }

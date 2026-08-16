@@ -5,13 +5,13 @@
 package db
 
 import (
-	"github.com/jackc/pgx/v5/pgtype"
+	"time"
 )
 
 type Url struct {
-	ID          int64              `json:"id"`
-	ShortCode   string             `json:"short_code"`
-	OriginalUrl string             `json:"original_url"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	ExpiresAt   pgtype.Timestamptz `json:"expires_at"`
+	ID          int64      `json:"id"`
+	ShortCode   string     `json:"short_code"`
+	OriginalUrl string     `json:"original_url"`
+	CreatedAt   time.Time  `json:"created_at"`
+	ExpiresAt   *time.Time `json:"expires_at"`
 }

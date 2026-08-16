@@ -8,7 +8,6 @@ import (
 	"github.com/doanvuduy170921/quick-link/internal/infrastructure"
 	db "github.com/doanvuduy170921/quick-link/internal/infrastructure/db/sqlc"
 	"github.com/jackc/pgx/v5"
-	"github.com/redis/go-redis/v9"
 	"time"
 )
 
@@ -37,29 +36,13 @@ func New(cfg *configs.Config) (*Container, error) {
 }
 
 func (c *Container) initRedis() error {
-	redisClient := redis.NewClient(&redis.Options{
-		Addr:       c.Config.Redis.Addr,
-		Password:   c.Config.Redis.Password,
-		DB:         c.Config.Redis.DB,
-		MaxRetries: c.Config.Redis.MaxRetries,
-		PoolSize:   c.Config.Redis.PoolSize})
-
+	redisCli := infrastructure.NewRedisClient(c.Config.Redis)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-
-	_, err := redisClient.Ping(ctx).Result()
-	if err != nil {
+	if err := redisCli.Ping(ctx); err != nil {
 		return fmt.Errorf("redis ping failed: %w", err)
 	}
-	// ← Wrap *redis.Client thành interface
-	c.Redis = infrastructure.NewRedisClient(
-		configs.RedisConfig{
-			Addr:     c.Config.Redis.Addr,
-			Password: c.Config.Redis.Password,
-			DB:       c.Config.Redis.DB,
-		},
-	)
-
+	c.Redis = redisCli
 	return nil
 }
 
@@ -99,5 +82,5 @@ func (c *Container) Close() error {
 			errs = errors.Join(errs, err)
 		}
 	}
-	return nil // Return nil if all error is nil or return muti-err if have error
+	return errs // Return nil if all error is nil or return muti-err if have error
 }
