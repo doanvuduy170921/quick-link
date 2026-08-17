@@ -1,60 +1,67 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
-	"sync"
+	"github.com/gin-gonic/gin"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
+func HelloHandler(w http.ResponseWriter, r *http.Request) {
+	time.Sleep(2 * time.Second)
+	fmt.Println(w, "Hello World")
+}
 func main() {
-	// 1. Gọi 3 nhà vận chuyển (chạy song song)
-	ch1 := fetchPrice("GHTK", 3000*time.Millisecond, 30000)
-	ch2 := fetchPrice("SHOPEE", 4000*time.Millisecond, 35000)
-	ch3 := fetchPrice("Ahamove", 1000*time.Millisecond, 37000) // Cho Ahamove nhanh nhất (1s)
+	r := gin.Default()
 
-	// 2. Gom 3 channel thành 1 channel tổng 'out'
-	out := fanIn(ch1, ch2, ch3)
+	r.GET("/hello-word", func(c *gin.Context) {
+		log.Println("Start with task slow request , graceful shutdowns")
+		time.Sleep(10 * time.Second)
 
-	// 3. Đọc dữ liệu từ channel tổng (Bên nào trả về trước sẽ in ra trước!)
-	for msg := range out {
-		fmt.Println(msg)
-	}
-}
-
-func fetchPrice(provider string, duration time.Duration, price int) <-chan string {
-	ch := make(chan string)
-
-	go func() {
-		time.Sleep(duration)
-		ch <- fmt.Sprintf("Gia van chuyen cua %s la %d", provider, price)
-		close(ch)
-	}()
-	return ch
-}
-
-func fanIn(input1, input2, input3 <-chan string) <-chan string {
-	out := make(chan string)
-	var wg sync.WaitGroup
-
-	// Tạo 1 helper function để đọc data từ 1 channel bất kỳ rồi đẩy sang 'out'
-	multiplex := func(c <-chan string) {
-		defer wg.Done()
-		for msg := range c { // Vòng range tự kết thúc khi channel 'c' bị close
-			out <- msg
+		select {
+		case <-c.Request.Context().Done():
+			log.Println("Request cancelled due to graceful shutdowns")
+			return
+		default:
+			log.Println("End with task slow request , graceful shutdowns")
+			c.JSON(http.StatusOK, gin.H{
+				"message": "Hello World",
+			})
+			return
 		}
+
+	})
+	r.GET("/ping", func(c *gin.Context) {
+		c.String(http.StatusOK, "pong")
+	})
+	srv := &http.Server{
+		Addr:    ":8080",
+		Handler: r,
 	}
 
-	wg.Add(3)
-	// Bật 3 Goroutines ngầm gom data từ 3 channel song song nhau
-	go multiplex(input1)
-	go multiplex(input2)
-	go multiplex(input3)
-
-	// Bật 1 Goroutine riêng chuyên đứng chờ 3 đứa trên xong để close(out)
 	go func() {
-		wg.Wait()
-		close(out) // Close để vòng lặp range ở main biết đường dừng lại
+		log.Printf("Listening and serving HTTP on %s\n", srv.Addr)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("ListenAndServe failed: %v", err)
+		}
 	}()
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	c := <-quit
+	log.Println("Got signal:", c)
+	log.Println("Shutdown Server ...")
 
-	return out
+	ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("Server Shutdown Failed:%+v", err)
+	}
+	log.Println("Server exiting gracefully")
+
 }

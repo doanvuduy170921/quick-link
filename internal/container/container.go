@@ -7,14 +7,14 @@ import (
 	"github.com/doanvuduy170921/quick-link/configs"
 	"github.com/doanvuduy170921/quick-link/internal/infrastructure"
 	db "github.com/doanvuduy170921/quick-link/internal/infrastructure/db/sqlc"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"time"
 )
 
 type Container struct {
 	Config  *configs.Config
 	Redis   infrastructure.RedisClient
-	PgxConn *pgx.Conn
+	PgxPool *pgxpool.Pool
 	Query   *db.Queries
 }
 
@@ -47,12 +47,12 @@ func (c *Container) initRedis() error {
 }
 
 func (c *Container) initPostgres() error {
-	config, err := pgx.ParseConfig(c.Config.Postgres.GetDSN())
+	config, err := pgxpool.ParseConfig(c.Config.Postgres.GetDSN())
 	if err != nil {
 		return fmt.Errorf("parse postgres config failed: %w", err)
 	}
 
-	conn, err := pgx.ConnectConfig(context.Background(), config)
+	conn, err := pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {
 		return fmt.Errorf("postgres connect failed: %w", err)
 	}
@@ -65,7 +65,7 @@ func (c *Container) initPostgres() error {
 		return fmt.Errorf("postgres ping failed: %w", err)
 	}
 
-	c.PgxConn = conn
+	c.PgxPool = conn
 	c.Query = db.New(conn)
 	return nil
 }
@@ -77,10 +77,9 @@ func (c *Container) Close() error {
 			errs = errors.Join(errs, err)
 		}
 	}
-	if c.PgxConn != nil {
-		if err := c.PgxConn.Close(context.Background()); err != nil {
-			errs = errors.Join(errs, err)
-		}
+	if c.PgxPool != nil {
+		c.PgxPool.Close()
+
 	}
 	return errs // Return nil if all error is nil or return muti-err if have error
 }
