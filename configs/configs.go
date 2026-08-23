@@ -15,10 +15,11 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Port         string        `envconfig:"SERVER_PORT" default:"8080"`
-	ReadTimeout  time.Duration `envconfig:"SERVER_READ_TIMEOUT" default:"10s"`
-	WriteTimeout time.Duration `envconfig:"SERVER_WRITE_TIMEOUT" default:"10s"`
-	IdleTimeout  time.Duration `envconfig:"SERVER_IDLE_TIMEOUT" default:"30s"`
+	Port            string        `envconfig:"SERVER_PORT" default:"8080"`
+	ReadTimeout     time.Duration `envconfig:"SERVER_READ_TIMEOUT" default:"10s"`
+	WriteTimeout    time.Duration `envconfig:"SERVER_WRITE_TIMEOUT" default:"10s"`
+	IdleTimeout     time.Duration `envconfig:"SERVER_IDLE_TIMEOUT" default:"30s"`
+	ShutdownTimeout time.Duration `envconfig:"SHUTDOWN_TIMEOUT" default:"30s"`
 }
 
 type RedisConfig struct {
@@ -32,7 +33,7 @@ type RedisConfig struct {
 
 type PostgresConfig struct {
 	DBUser      string `envconfig:"POSTGRES_USER" default:"postgres"`
-	DBName      string `envconfig:"POSTGRES_NAME" default:"postgres"`
+	DBName      string `envconfig:"POSTGRES_DB" default:"quicklink_db"`
 	DBHost      string `envconfig:"POSTGRES_HOST" default:"localhost"`
 	DBPort      string `envconfig:"POSTGRES_PORT" default:"5432"`
 	DBSSLMode   string `envconfig:"POSTGRES_SSL_MODE" default:"disable"`

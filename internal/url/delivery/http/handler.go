@@ -5,6 +5,7 @@ import (
 	"github.com/doanvuduy170921/quick-link/internal/url/usecase"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"time"
 )
 
 type URLHandler struct {
@@ -18,6 +19,7 @@ func NewURLHandler(useCase usecase.UseCase) *URLHandler {
 }
 
 func (h *URLHandler) ShortenURL(c *gin.Context) {
+	time.Sleep(15 * time.Second)
 	var input ShortenInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

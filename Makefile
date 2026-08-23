@@ -5,7 +5,7 @@ ifneq ($(wildcard .env),)
 endif
 
 MIGRATIONS_PATH =migrations
-DB_URL = postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(DB_SSLMODE)
+DB_URL = postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSGRES_DB)?sslmode=$(POSTGRES_SSL_MODE)
 
 
 .PHONY: run dev build migrate-create migrate-up migrate-down migrate-down-all sqlc test docker-up docker-down docs help
