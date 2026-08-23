@@ -52,7 +52,7 @@ func (c *Container) initPostgres() error {
 		return fmt.Errorf("parse postgres config failed: %w", err)
 	}
 
-	conn, err := pgxpool.NewWithConfig(context.Background(), config)
+	pool, err := pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {
 		return fmt.Errorf("postgres connect failed: %w", err)
 	}
@@ -61,12 +61,12 @@ func (c *Container) initPostgres() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := conn.Ping(ctx); err != nil {
+	if err := pool.Ping(ctx); err != nil {
 		return fmt.Errorf("postgres ping failed: %w", err)
 	}
 
-	c.PgxPool = conn
-	c.Query = db.New(conn)
+	c.PgxPool = pool
+	c.Query = db.New(pool)
 	return nil
 }
 

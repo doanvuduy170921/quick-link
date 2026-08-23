@@ -1,7 +1,8 @@
 package api
 
 import (
-	"errors"
+	"net/http"
+
 	"github.com/doanvuduy170921/quick-link/configs"
 	"github.com/doanvuduy170921/quick-link/internal/infrastructure"
 	db "github.com/doanvuduy170921/quick-link/internal/infrastructure/db/sqlc"
@@ -9,8 +10,6 @@ import (
 	"github.com/doanvuduy170921/quick-link/internal/url/repository"
 	"github.com/doanvuduy170921/quick-link/internal/url/usecase"
 	"github.com/gin-gonic/gin"
-	"log"
-	"net/http"
 )
 
 type Server struct {
@@ -28,14 +27,7 @@ func NewServer(cfg *configs.Config, redisClient infrastructure.RedisClient, stor
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	srv := &http.Server{
-		Addr:    ":" + s.cfg.Server.Port,
-		Handler: s.app,
-	}
-
-	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		log.Fatalf("Server Shutdown Failed:%+v", err)
-	}
+	s.app.ServeHTTP(w, r)
 }
 
 func (s *Server) SetUpRoutes(redis infrastructure.RedisClient, store db.Querier) {

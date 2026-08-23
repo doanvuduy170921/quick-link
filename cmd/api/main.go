@@ -29,6 +29,8 @@ func main() {
 
 	defer cnt.Close()
 
-	boot.RunServer(cfg, cnt)
+	if err := boot.RunServer(cfg, cnt); err != nil {
+		log.Fatalf(" Failed to start server: %v", err)
+	}
 
 }

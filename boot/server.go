@@ -3,6 +3,7 @@ package boot
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/doanvuduy170921/quick-link/configs"
 	"github.com/doanvuduy170921/quick-link/internal/api"
 	"github.com/doanvuduy170921/quick-link/internal/container"
@@ -11,10 +12,9 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 )
 
-func RunServer(cfg *configs.Config, cnt *container.Container) {
+func RunServer(cfg *configs.Config, cnt *container.Container) error {
 	server := api.NewServer(cfg, cnt.Redis, cnt.Query)
 
 	srv := &http.Server{
@@ -22,22 +22,28 @@ func RunServer(cfg *configs.Config, cnt *container.Container) {
 		Handler:      server,
 		ReadTimeout:  cfg.Server.ReadTimeout,
 		WriteTimeout: cfg.Server.WriteTimeout,
-		IdleTimeout:  cfg.Server.IdleTimeout}
+		IdleTimeout:  cfg.Server.IdleTimeout,
+	}
 
+	errChan := make(chan error, 1)
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("Server ListenAndServe: %v", err)
+			log.Printf("http server listen err:%v\n", err)
+			errChan <- err
 		}
 	}()
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	log.Println("Shutdown Server ...")
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("Server Shutdown Failed:%+v", err)
+
+	select {
+	case err := <-errChan:
+		return fmt.Errorf("server error: %v", err)
+	case <-ctx.Done():
+		log.Println("shutting down...")
 	}
-	log.Println("Server exiting")
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), cfg.Server.ShutdownTimeout)
+	defer shutdownCancel()
+	return srv.Shutdown(shutdownCtx)
+
 }
