@@ -28,7 +28,6 @@ func RunServer(cfg *configs.Config, cnt *container.Container) error {
 	errChan := make(chan error, 1)
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Printf("http server listen err:%v\n", err)
 			errChan <- err
 		}
 	}()
@@ -38,7 +37,7 @@ func RunServer(cfg *configs.Config, cnt *container.Container) error {
 
 	select {
 	case err := <-errChan:
-		return fmt.Errorf("server error: %v", err)
+		return fmt.Errorf("server error: %w", err)
 	case <-ctx.Done():
 		log.Println("shutting down...")
 	}
