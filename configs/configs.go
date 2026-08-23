@@ -19,7 +19,7 @@ type ServerConfig struct {
 	ReadTimeout     time.Duration `envconfig:"SERVER_READ_TIMEOUT" default:"10s"`
 	WriteTimeout    time.Duration `envconfig:"SERVER_WRITE_TIMEOUT" default:"10s"`
 	IdleTimeout     time.Duration `envconfig:"SERVER_IDLE_TIMEOUT" default:"30s"`
-	ShutdownTimeout time.Duration `envconfig:"SHUTDOWN_TIMEOUT" default:"30s"`
+	ShutdownTimeout time.Duration `envconfig:"SERVER_SHUTDOWN_TIMEOUT" default:"15s"`
 }
 
 type RedisConfig struct {

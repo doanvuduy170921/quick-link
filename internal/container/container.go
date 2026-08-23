@@ -51,7 +51,9 @@ func (c *Container) initPostgres() error {
 	if err != nil {
 		return fmt.Errorf("parse postgres config failed: %w", err)
 	}
-
+	config.MaxConns = int32(c.Config.Postgres.MaxOpenConn)
+	config.MinConns = int32(c.Config.Postgres.MaxIdleConn)
+	config.ConnConfig.ConnectTimeout = time.Duration(c.Config.Postgres.ConnTimeout) * time.Second
 	pool, err := pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {
 		return fmt.Errorf("postgres connect failed: %w", err)
@@ -67,6 +69,7 @@ func (c *Container) initPostgres() error {
 
 	c.PgxPool = pool
 	c.Query = db.New(pool)
+
 	return nil
 }
 
@@ -81,5 +84,5 @@ func (c *Container) Close() error {
 		c.PgxPool.Close()
 
 	}
-	return errs // Return nil if all error is nil or return muti-err if have error
+	return errs // Return nil if all error is nil or return muti-err if you have an error
 }
