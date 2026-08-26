@@ -1,0 +1,10 @@
+with-expecter: true
+dir: "internal/mocks"
+outpkg: "mocks"
+packages:
+  github.com/doanvuduy170921/quick-link/internal/url/repository:
+    interfaces:
+      UrlRepository:
+  github.com/doanvuduy170921/quick-link/internal/infrastructure:
+    interfaces:
+      RedisClient:
