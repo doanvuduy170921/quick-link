@@ -8,3 +8,6 @@ packages:
   github.com/doanvuduy170921/quick-link/internal/infrastructure:
     interfaces:
       RedisClient:
+  github.com/doanvuduy170921/quick-link/internal/url/usecase:
+    interfaces:
+      UseCase:

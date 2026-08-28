@@ -8,7 +8,7 @@ MIGRATIONS_PATH =migrations
 DB_URL = postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?sslmode=$(POSTGRES_SSL_MODE)
 
 
-.PHONY: run dev build migrate-create migrate-up migrate-down migrate-down-all sqlc test docker-up docker-down docs help gen-mocks
+.PHONY: run dev build migrate-create migrate-up migrate-down migrate-down-all sqlc test docker-up docker-down docs help gen-mocks test coverage
 
 
 run:
@@ -49,3 +49,7 @@ docker-down:
 
 gen-mocks:
 	mockery
+
+coverage:
+	go test -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out

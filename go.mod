@@ -9,6 +9,7 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/redis/go-redis/v9 v9.21.0
 	github.com/stretchr/testify v1.11.1
+	go.uber.org/mock v0.6.0
 )
 
 require (
