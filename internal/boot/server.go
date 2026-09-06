@@ -15,7 +15,9 @@ import (
 )
 
 func RunServer(cfg *configs.Config, cnt *container.Container) error {
-	server := api.NewServer(cfg, cnt.Redis, cnt.Query)
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+	server := api.NewServer(ctx, cfg, cnt.Redis, cnt.Query)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Server.Port,
@@ -31,9 +33,6 @@ func RunServer(cfg *configs.Config, cnt *container.Container) error {
 			errChan <- err
 		}
 	}()
-
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer cancel()
 
 	select {
 	case err := <-errChan:

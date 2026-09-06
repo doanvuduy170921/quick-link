@@ -12,6 +12,8 @@ type RedisClient interface {
 	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error
 	Ping(ctx context.Context) error
 	Close() error
+	Incr(ctx context.Context, key string) (int64, error)
+	Expire(ctx context.Context, key string, ttl time.Duration) error
 }
 
 type redisClient struct {
@@ -46,4 +48,12 @@ func (r *redisClient) Ping(ctx context.Context) error {
 
 func (r *redisClient) Close() error {
 	return r.client.Close()
+}
+
+func (r *redisClient) Incr(ctx context.Context, key string) (int64, error) {
+	return r.client.Incr(ctx, key).Result()
+}
+
+func (r *redisClient) Expire(ctx context.Context, key string, ttl time.Duration) error {
+	return r.client.Expire(ctx, key, ttl).Err()
 }

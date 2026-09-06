@@ -53,3 +53,6 @@ gen-mocks:
 coverage:
 	go test -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out
+
+integration-test:
+	go test -v -tags=integration ./internal/integration/...
