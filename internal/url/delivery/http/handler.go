@@ -8,12 +8,18 @@ import (
 )
 
 type URLHandler struct {
-	useCase usecase.UseCase
+	useCase      usecase.UseCase
+	clickTracker ClickTracker
 }
 
-func NewURLHandler(useCase usecase.UseCase) *URLHandler {
+type ClickTracker interface {
+	Track(code string)
+}
+
+func NewURLHandler(useCase usecase.UseCase, clickTracker ClickTracker) *URLHandler {
 	return &URLHandler{
-		useCase: useCase,
+		useCase:      useCase,
+		clickTracker: clickTracker,
 	}
 }
 
@@ -43,6 +49,7 @@ func (h *URLHandler) Redirect(c *gin.Context) {
 		url_err.HandlerError(c, err)
 		return
 	}
+	h.clickTracker.Track(code)
 
 	c.Redirect(http.StatusFound, url)
 }

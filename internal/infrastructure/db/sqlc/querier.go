@@ -9,6 +9,7 @@ import (
 )
 
 type Querier interface {
+	BatchInsertClick(ctx context.Context, arg []BatchInsertClickParams) (int64, error)
 	CreateURL(ctx context.Context, arg CreateURLParams) (Url, error)
 	GetOriginalUrlByShortCode(ctx context.Context, shortCode string) (GetOriginalUrlByShortCodeRow, error)
 }

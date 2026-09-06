@@ -8,6 +8,12 @@ import (
 	"time"
 )
 
+type Click struct {
+	ID        int64     `json:"id"`
+	ShortCode string    `json:"short_code"`
+	ClickedAt time.Time `json:"clicked_at"`
+}
+
 type Url struct {
 	ID          int64      `json:"id"`
 	ShortCode   string     `json:"short_code"`
