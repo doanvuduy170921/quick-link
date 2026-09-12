@@ -1,8 +1,8 @@
 -- name: CreateURL :one
 insert into urls(
-                    short_code,original_url,expires_at,created_at
+                    short_code,original_url,expires_at,created_at,user_id
 )
-values ($1,$2,$3,NOW())
+values ($1,$2,$3,NOW(),$4)
 returning *;
 
 

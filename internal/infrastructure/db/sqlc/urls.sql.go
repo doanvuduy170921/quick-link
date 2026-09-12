@@ -8,24 +8,32 @@ package db
 import (
 	"context"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createURL = `-- name: CreateURL :one
 insert into urls(
-                    short_code,original_url,expires_at,created_at
+                    short_code,original_url,expires_at,created_at,user_id
 )
-values ($1,$2,$3,NOW())
-returning id, short_code, original_url, created_at, expires_at
+values ($1,$2,$3,NOW(),$4)
+returning id, short_code, original_url, created_at, expires_at, user_id
 `
 
 type CreateURLParams struct {
-	ShortCode   string     `json:"short_code"`
-	OriginalUrl string     `json:"original_url"`
-	ExpiresAt   *time.Time `json:"expires_at"`
+	ShortCode   string      `json:"short_code"`
+	OriginalUrl string      `json:"original_url"`
+	ExpiresAt   *time.Time  `json:"expires_at"`
+	UserID      pgtype.Int8 `json:"user_id"`
 }
 
 func (q *Queries) CreateURL(ctx context.Context, arg CreateURLParams) (Url, error) {
-	row := q.db.QueryRow(ctx, createURL, arg.ShortCode, arg.OriginalUrl, arg.ExpiresAt)
+	row := q.db.QueryRow(ctx, createURL,
+		arg.ShortCode,
+		arg.OriginalUrl,
+		arg.ExpiresAt,
+		arg.UserID,
+	)
 	var i Url
 	err := row.Scan(
 		&i.ID,
@@ -33,6 +41,7 @@ func (q *Queries) CreateURL(ctx context.Context, arg CreateURLParams) (Url, erro
 		&i.OriginalUrl,
 		&i.CreatedAt,
 		&i.ExpiresAt,
+		&i.UserID,
 	)
 	return i, err
 }

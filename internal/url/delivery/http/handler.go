@@ -1,6 +1,8 @@
 package http
 
 import (
+	"errors"
+	"github.com/doanvuduy170921/quick-link/internal/middleware"
 	url_err "github.com/doanvuduy170921/quick-link/internal/url/error"
 	"github.com/doanvuduy170921/quick-link/internal/url/usecase"
 	"github.com/gin-gonic/gin"
@@ -30,7 +32,18 @@ func (h *URLHandler) ShortenURL(c *gin.Context) {
 		return
 	}
 
-	code, err := h.useCase.GenerateKey(c.Request.Context(), input.URL)
+	var user_id *int64
+	uid, exist := c.Get(middleware.AuthorizationPayloadKey)
+	if exist {
+		id := uid.(int64)
+		user_id = &id
+	}
+
+	if input.CustomAlias != "" && user_id == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": errors.New("cannot use custom alias").Error()})
+		return
+	}
+	code, err := h.useCase.GenerateKey(c.Request.Context(), input.URL, input.CustomAlias, user_id)
 	if err != nil {
 		url_err.HandlerError(c, err)
 		return

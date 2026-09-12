@@ -21,7 +21,7 @@ const (
 )
 
 type UseCase interface {
-	GenerateKey(ctx context.Context, URL string) (string, error)
+	GenerateKey(ctx context.Context, URL, customAlias string, userId *int64) (string, error)
 	Redirect(ctx context.Context, code string) (string, error)
 }
 
@@ -37,7 +37,7 @@ func NewUseCase(repo repository.UrlRepository, redis infrastructure.RedisClient)
 	}
 }
 
-func (u *useCase) GenerateKey(ctx context.Context, URL string) (string, error) {
+func (u *useCase) GenerateKey(ctx context.Context, URL, customAlias string, userId *int64) (string, error) {
 	if URL == "" {
 		return "", urlErr.NewValidationError("url must not be empty")
 	}
@@ -58,6 +58,7 @@ func (u *useCase) GenerateKey(ctx context.Context, URL string) (string, error) {
 			ShortCode:   k,
 			OriginalUrl: URL,
 			ExpiresAt:   &expiresAt,
+			UserID:      toPgInt8(userId),
 		})
 		if err == nil {
 			key = k

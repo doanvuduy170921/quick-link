@@ -6,6 +6,8 @@ package db
 
 import (
 	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Click struct {
@@ -15,9 +17,18 @@ type Click struct {
 }
 
 type Url struct {
-	ID          int64      `json:"id"`
-	ShortCode   string     `json:"short_code"`
-	OriginalUrl string     `json:"original_url"`
-	CreatedAt   time.Time  `json:"created_at"`
-	ExpiresAt   *time.Time `json:"expires_at"`
+	ID          int64       `json:"id"`
+	ShortCode   string      `json:"short_code"`
+	OriginalUrl string      `json:"original_url"`
+	CreatedAt   time.Time   `json:"created_at"`
+	ExpiresAt   *time.Time  `json:"expires_at"`
+	UserID      pgtype.Int8 `json:"user_id"`
+}
+
+type User struct {
+	ID           int64     `json:"id"`
+	Email        string    `json:"email"`
+	PasswordHash string    `json:"password_hash"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
