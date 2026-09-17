@@ -11,7 +11,10 @@ import (
 type Querier interface {
 	BatchInsertClick(ctx context.Context, arg []BatchInsertClickParams) (int64, error)
 	CreateURL(ctx context.Context, arg CreateURLParams) (Url, error)
+	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	GetOriginalUrlByShortCode(ctx context.Context, shortCode string) (GetOriginalUrlByShortCodeRow, error)
+	GetUserByEmail(ctx context.Context, email string) (User, error)
+	GetUserByID(ctx context.Context, id int64) (User, error)
 }
 
 var _ Querier = (*Queries)(nil)

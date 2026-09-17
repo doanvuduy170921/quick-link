@@ -7,19 +7,27 @@ import (
 	"github.com/doanvuduy170921/quick-link/configs"
 	"github.com/doanvuduy170921/quick-link/internal/infrastructure"
 	db "github.com/doanvuduy170921/quick-link/internal/infrastructure/db/sqlc"
+	pkgJwt "github.com/doanvuduy170921/quick-link/pkg/jwt"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"time"
 )
 
 type Container struct {
-	Config  *configs.Config
-	Redis   infrastructure.RedisClient
-	PgxPool *pgxpool.Pool
-	Query   *db.Queries
+	Config     *configs.Config
+	Redis      infrastructure.RedisClient
+	PgxPool    *pgxpool.Pool
+	Query      *db.Queries
+	JWTManager *pkgJwt.JWTManager
 }
 
 func New(cfg *configs.Config) (*Container, error) {
 	c := &Container{Config: cfg}
+
+	jwtMgr, err := pkgJwt.NewJWTManager("certs/jwt_private.pem", "certs/jwt_public.pem")
+	if err != nil {
+		return nil, fmt.Errorf("init jwt manager failed: %w", err)
+	}
+	c.JWTManager = jwtMgr
 
 	// Redis
 	if err := c.initRedis(); err != nil {

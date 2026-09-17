@@ -17,7 +17,7 @@ import (
 func RunServer(cfg *configs.Config, cnt *container.Container) error {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
-	server := api.NewServer(ctx, cfg, cnt.Redis, cnt.Query)
+	server := api.NewServer(ctx, cfg, cnt.Redis, cnt.Query, cnt.JWTManager)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Server.Port,

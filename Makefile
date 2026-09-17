@@ -8,7 +8,7 @@ MIGRATIONS_PATH =migrations
 DB_URL = postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?sslmode=$(POSTGRES_SSL_MODE)
 
 
-.PHONY: run dev build migrate-create migrate-up migrate-down migrate-down-all sqlc test docker-up docker-down docs help gen-mocks test coverage
+.PHONY: run dev build migrate-create migrate-up migrate-down migrate-down-all sqlc test docker-up docker-down docs help gen-mocks test coverage gen-keys
 
 
 run:
@@ -56,3 +56,9 @@ coverage:
 
 integration-test:
 	go test -v -tags=integration ./internal/integration/...
+
+gen-keys:
+	@mkdir -p certs
+	@openssl genrsa -out certs/jwt_private.pem 2048
+	@openssl rsa -in certs/jwt_private.pem -pubout -out certs/jwt_public.pem
+	@echo "RSA Key pairs generated in ./certs/"
