@@ -19,7 +19,16 @@ func NewUserHandler(useCase usecase.UserUseCase) *UserHandler {
 	}
 }
 
-// Register xử lý API POST /api/v1/auth/register
+// Register godoc
+// @Summary      Register a new user
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body RegisterRequest true "Registration info"
+// @Success      201 {object} UserResponse
+// @Failure      400 {object} map[string]string
+// @Failure      409 {object} map[string]string "email already registered"
+// @Router       /api/v1/auth/register [post]
 func (h *UserHandler) Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -44,7 +53,16 @@ func (h *UserHandler) Register(c *gin.Context) {
 	})
 }
 
-// Login xử lý API POST /api/v1/auth/login
+// Login godoc
+// @Summary      Login and get JWT access token
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body LoginRequest true "Credentials"
+// @Success      200 {object} LoginResponse
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string "invalid credentials"
+// @Router       /api/v1/auth/login [post]
 func (h *UserHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

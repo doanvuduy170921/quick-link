@@ -11,20 +11,34 @@ import (
 
 type URLHandler struct {
 	useCase      usecase.UseCase
-	clickTracker ClickTracker
+	ClickTracker ClickTracker
 }
 
 type ClickTracker interface {
 	Track(code string)
 }
 
-func NewURLHandler(useCase usecase.UseCase, clickTracker ClickTracker) *URLHandler {
+func NewURLHandler(useCase usecase.UseCase, ClickTracker ClickTracker) *URLHandler {
 	return &URLHandler{
 		useCase:      useCase,
-		clickTracker: clickTracker,
+		ClickTracker: ClickTracker,
 	}
 }
 
+// ShortenURL godoc
+// @Summary      Create a short URL
+// @Description  Shortens a long URL. Anonymous users get a random code (user_id = null).
+// @Description  Authenticated users may pass a custom_alias; anonymous users passing custom_alias get 401.
+// @Tags         url
+// @Accept       json
+// @Produce      json
+// @Param        request body ShortenInput true "URL to shorten"
+// @Success      200 {object} map[string]string "code, message"
+// @Failure      400 {object} map[string]string "validation error / malformed body"
+// @Failure      401 {object} map[string]string "custom_alias requires login"
+// @Failure      500 {object} map[string]string "internal error"
+// @Security     BearerAuth
+// @Router       /shorten [post]
 func (h *URLHandler) ShortenURL(c *gin.Context) {
 	var input ShortenInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -54,6 +68,16 @@ func (h *URLHandler) ShortenURL(c *gin.Context) {
 	})
 }
 
+// Redirect godoc
+// @Summary      Redirect to original URL
+// @Description  Redirects to the original URL for a given short code. Tracks click asynchronously.
+// @Tags         url
+// @Produce      json
+// @Param        code path string true "Short code"
+// @Success      302 "Redirects to original URL"
+// @Failure      404 {object} map[string]string "code not found or expired"
+// @Failure      500 {object} map[string]string "internal error"
+// @Router       /redirect/{code} [get]
 func (h *URLHandler) Redirect(c *gin.Context) {
 	code := c.Param("code")
 
@@ -62,7 +86,7 @@ func (h *URLHandler) Redirect(c *gin.Context) {
 		url_err.HandlerError(c, err)
 		return
 	}
-	h.clickTracker.Track(code)
+	h.ClickTracker.Track(code)
 
 	c.Redirect(http.StatusFound, url)
 }

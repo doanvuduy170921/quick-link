@@ -9,6 +9,8 @@ import (
 	repository2 "github.com/doanvuduy170921/quick-link/internal/user/repository"
 	usecase2 "github.com/doanvuduy170921/quick-link/internal/user/usecase"
 	pkgJwt "github.com/doanvuduy170921/quick-link/pkg/jwt"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"net/http"
 	"time"
 
@@ -70,4 +72,6 @@ func (s *Server) SetUpRoutes(ctx context.Context, redis infrastructure.RedisClie
 		// Sau này thêm API GET /my-links vào đây
 		_ = protectedGroup
 	}
+
+	s.app.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 }
