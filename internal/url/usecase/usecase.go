@@ -44,6 +44,24 @@ func (u *useCase) GenerateKey(ctx context.Context, URL, customAlias string, user
 
 	expiresAt := time.Now().Add(RedisExp)
 
+	if customAlias != "" {
+		url, err := u.repo.CreateURL(ctx, db.CreateURLParams{
+			ShortCode:   customAlias,
+			OriginalUrl: URL,
+			ExpiresAt:   &expiresAt,
+			UserID:      toPgInt8(userId),
+		})
+		if err != nil {
+			if isUniqueViolation(err) {
+				return "", urlErr.NewValidationError("this alias is already taken, please choose another")
+			}
+			return "", urlErr.NewInternalError("create url error", err)
+		}
+		if err := u.redis.Set(ctx, customAlias, url.OriginalUrl, time.Until(expiresAt)); err != nil {
+			log.Printf("redis set warning: short_code=%s: %v", customAlias, err)
+		}
+		return customAlias, nil
+	}
 	var (
 		key string
 		url db.Url
@@ -53,7 +71,6 @@ func (u *useCase) GenerateKey(ctx context.Context, URL, customAlias string, user
 		if err != nil {
 			return "", urlErr.NewInternalError("generate key error", err)
 		}
-
 		url, err = u.repo.CreateURL(ctx, db.CreateURLParams{
 			ShortCode:   k,
 			OriginalUrl: URL,

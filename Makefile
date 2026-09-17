@@ -31,6 +31,8 @@ migrate-down:
 migrate-down-all:
 	migrate -path $(MIGRATIONS_PATH) -database "$(DB_URL)" down -all
 
+swag:
+	swag init -g cmd/api/main.go -o docs
 
 sqlc:
 	sqlc generate

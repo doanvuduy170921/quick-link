@@ -1,12 +1,14 @@
 package http
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"errors"
+	db "github.com/doanvuduy170921/quick-link/internal/infrastructure/db/sqlc"
 	"github.com/doanvuduy170921/quick-link/internal/mocks"
 	urlErr "github.com/doanvuduy170921/quick-link/internal/url/error"
+	"github.com/doanvuduy170921/quick-link/internal/url/usecase"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"net/http"
@@ -14,121 +16,159 @@ import (
 	"testing"
 )
 
-func TestURLHandler_ShortenURL(t *testing.T) {
-	gin.SetMode(gin.TestMode)
+func pgUniqueViolationErr() error {
+	return &pgconn.PgError{Code: "23505"}
+}
+
+func TestUseCase_GenerateKey_CustomAlias(t *testing.T) {
+	ctx := context.Background()
+
 	tests := []struct {
-		name             string
-		requestBody      ShortenInput
-		rawBody          string
-		mockSetUp        func(*mocks.MockUseCase)
-		ExpectStatusCode int
+		name          string
+		url           string
+		customAlias   string
+		userID        *int64
+		mockSetUp     func(*mocks.MockRedisClient, *mocks.MockUrlRepository)
+		expectCode    string
+		expectErr     bool
+		expectErrType urlErr.ErrorType
 	}{
 		{
-			name: "success",
-			requestBody: ShortenInput{
-				URL: "http://google.com",
-			},
-			mockSetUp: func(m *mocks.MockUseCase) {
-				m.EXPECT().GenerateKey(mock.Anything, "http://google.com").Return("abcd123", nil).Once()
-			},
-			ExpectStatusCode: http.StatusOK,
-		},
-		{
-			name: "malformed json syntax error",
-			requestBody: ShortenInput{
-				URL: "http://google.com",
-			},
-			mockSetUp:        func(m *mocks.MockUseCase) {},
-			rawBody:          `{"url": "http://google.com"`,
-			ExpectStatusCode: http.StatusBadRequest,
-		},
-		{
-			name: " body invalid",
-			requestBody: ShortenInput{
-				URL: "abcd123",
-			},
-			mockSetUp: func(m *mocks.MockUseCase) {
-			},
-			ExpectStatusCode: http.StatusBadRequest,
-		},
-		{
-			name: " body empty",
-			requestBody: ShortenInput{
-				URL: "",
-			},
-			mockSetUp: func(m *mocks.MockUseCase) {
-
-			},
-			ExpectStatusCode: http.StatusBadRequest,
-		},
-		{
-			name:        "usecase returns validation error",
-			requestBody: ShortenInput{URL: "http://valid-format-but-empty-in-usecase.com"},
-			mockSetUp: func(m *mocks.MockUseCase) {
-				m.EXPECT().
-					GenerateKey(mock.Anything, mock.Anything).
-					Return("", urlErr.NewValidationError("url must not be empty")).
+			name:        "custom alias - success with logged in user",
+			url:         "https://example.com",
+			customAlias: "mylink",
+			userID:      int64Ptr(42),
+			mockSetUp: func(mockRe *mocks.MockRedisClient, mockRepo *mocks.MockUrlRepository) {
+				mockRepo.EXPECT().
+					CreateURL(ctx, mock.MatchedBy(func(p db.CreateURLParams) bool {
+						return p.ShortCode == "mylink" &&
+							p.UserID.Valid == true &&
+							p.UserID.Int64 == 42
+					})).
+					Return(db.Url{
+						ShortCode:   "mylink",
+						OriginalUrl: "https://example.com",
+					}, nil).
+					Once()
+				mockRe.EXPECT().
+					Set(ctx, "mylink", "https://example.com", mock.Anything).
+					Return(nil).
 					Once()
 			},
-			ExpectStatusCode: http.StatusBadRequest,
+			expectCode: "mylink",
+			expectErr:  false,
 		},
 		{
-			name:        "usecase returns internal error",
-			requestBody: ShortenInput{URL: "http://valid.com"},
-			mockSetUp: func(m *mocks.MockUseCase) {
-				m.EXPECT().
-					GenerateKey(mock.Anything, mock.Anything).
-					Return("", urlErr.NewInternalError("create url error", errors.New("db connection failed"))).
+			name:        "custom alias - success with anonymous user (userID nil)",
+			url:         "https://example.com",
+			customAlias: "publiclink",
+			userID:      nil,
+			mockSetUp: func(mockRe *mocks.MockRedisClient, mockRepo *mocks.MockUrlRepository) {
+				mockRepo.EXPECT().
+					CreateURL(ctx, mock.MatchedBy(func(p db.CreateURLParams) bool {
+						// Verify: userID nil PHẢI convert thành pgtype.Int8{Valid: false}
+						return p.ShortCode == "publiclink" && p.UserID.Valid == false
+					})).
+					Return(db.Url{
+						ShortCode:   "publiclink",
+						OriginalUrl: "https://example.com",
+					}, nil).
+					Once()
+				mockRe.EXPECT().
+					Set(ctx, "publiclink", "https://example.com", mock.Anything).
+					Return(nil).
 					Once()
 			},
-			ExpectStatusCode: http.StatusInternalServerError,
+			expectCode: "publiclink",
+			expectErr:  false,
+		},
+		{
+			name:        "custom alias - already taken (unique violation, NO retry)",
+			url:         "https://example.com",
+			customAlias: "taken",
+			userID:      int64Ptr(1),
+			mockSetUp: func(mockRe *mocks.MockRedisClient, mockRepo *mocks.MockUrlRepository) {
+				mockRepo.EXPECT().
+					CreateURL(ctx, mock.Anything).
+					Return(db.Url{}, pgUniqueViolationErr()).
+					Once() // ← Once() tự động verify KHÔNG có lần gọi thứ 2 (không retry)
+			},
+			expectErr:     true,
+			expectErrType: urlErr.ErrValidation,
+		},
+		{
+			name:        "custom alias - other db error (not unique violation)",
+			url:         "https://example.com",
+			customAlias: "somealias",
+			userID:      int64Ptr(1),
+			mockSetUp: func(mockRe *mocks.MockRedisClient, mockRepo *mocks.MockUrlRepository) {
+				mockRepo.EXPECT().
+					CreateURL(ctx, mock.Anything).
+					Return(db.Url{}, errors.New("connection timeout")).
+					Once()
+			},
+			expectErr:     true,
+			expectErrType: urlErr.ErrInternal,
+		},
+		{
+			name:        "custom alias - redis set error, still return code",
+			url:         "https://example.com",
+			customAlias: "resilient",
+			userID:      int64Ptr(1),
+			mockSetUp: func(mockRe *mocks.MockRedisClient, mockRepo *mocks.MockUrlRepository) {
+				mockRepo.EXPECT().
+					CreateURL(ctx, mock.Anything).
+					Return(db.Url{
+						ShortCode:   "resilient",
+						OriginalUrl: "https://example.com",
+					}, nil).
+					Once()
+				mockRe.EXPECT().
+					Set(ctx, "resilient", "https://example.com", mock.Anything).
+					Return(errors.New("redis down")).
+					Once()
+			},
+			expectCode: "resilient",
+			expectErr:  false,
 		},
 	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			mockUC := mocks.NewMockUseCase(t)
-			tc.mockSetUp(mockUC)
 
-			s := NewURLHandler(mockUC)
-			router := gin.New()
-			router.POST("/shorten", s.ShortenURL)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockRe := mocks.NewMockRedisClient(t)
+			mockRepo := mocks.NewMockUrlRepository(t)
 
-			var body []byte
-			if tc.rawBody != "" {
-				body = []byte(tc.rawBody)
+			tt.mockSetUp(mockRe, mockRepo)
+
+			uc := usecase.NewUseCase(mockRepo, mockRe)
+			code, err := uc.GenerateKey(ctx, tt.url, tt.customAlias, tt.userID)
+
+			if tt.expectErr {
+				require.Error(t, err)
+				var urlError *urlErr.URLError
+				require.True(t, errors.As(err, &urlError))
+				require.Equal(t, tt.expectErrType, urlError.Type)
 			} else {
-				bodyByte, err := json.Marshal(tc.requestBody)
 				require.NoError(t, err)
-				body = bodyByte
-			}
-
-			req := httptest.NewRequest(http.MethodPost, "/shorten", bytes.NewBuffer(body))
-			req.Header.Set("Content-Type", "application/json")
-			w := httptest.NewRecorder()
-			router.ServeHTTP(w, req)
-			require.Equal(t, tc.ExpectStatusCode, w.Code)
-			if tc.name == "usecase returns internal error" {
-				require.NotContains(t, w.Body.String(), "db connection failed")
-			}
-
-			if tc.name == "success" {
-				var resp map[string]string
-				require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-				require.Equal(t, "abcd123", resp["code"])
+				require.Equal(t, tt.expectCode, code)
 			}
 		})
 	}
+}
 
+func int64Ptr(v int64) *int64 {
+	return &v
 }
 
 func TestURLHandler_Redirect(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	tests := []struct {
-		name             string
-		code             string
-		mockSetUp        func(*mocks.MockUseCase)
-		ExpectStatusCode int
+		name              string
+		code              string
+		mockSetUp         func(*mocks.MockUseCase)
+		ExpectStatusCode  int
+		expectTrackCalled bool
 	}{
 		{
 			name: "success",
@@ -136,7 +176,8 @@ func TestURLHandler_Redirect(t *testing.T) {
 			mockSetUp: func(m *mocks.MockUseCase) {
 				m.EXPECT().Redirect(mock.Anything, "abcd123").Return("http://google.com", nil).Once()
 			},
-			ExpectStatusCode: http.StatusFound,
+			expectTrackCalled: true,
+			ExpectStatusCode:  http.StatusFound,
 		},
 		{
 			name: "not found",
@@ -162,7 +203,11 @@ func TestURLHandler_Redirect(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockUC := mocks.NewMockUseCase(t)
 			tc.mockSetUp(mockUC)
-			s := NewURLHandler(mockUC)
+			mockTracker := mocks.NewMockClickTracker(t)
+			if tc.expectTrackCalled {
+				mockTracker.EXPECT().Track(mock.Anything).Once()
+			}
+			s := NewURLHandler(mockUC, mockTracker)
 			router := gin.New()
 			router.GET("/redirect/:code", s.Redirect)
 

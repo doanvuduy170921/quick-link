@@ -190,7 +190,10 @@ func TestUseCase_GenerateKey(t *testing.T) {
 	tests := []struct {
 		name          string
 		url           string
+		customAlias   string // ← THÊM
+		userID        *int64 // ← THÊM
 		mockSetUp     func(*mocks.MockRedisClient, *mocks.MockUrlRepository)
+		expectCode    string // ← THÊM (để verify custom alias trả đúng code, không chỉ check độ dài 7)
 		expectErr     bool
 		expectErrType urlErr.ErrorType
 	}{
@@ -200,10 +203,7 @@ func TestUseCase_GenerateKey(t *testing.T) {
 			mockSetUp: func(mockRe *mocks.MockRedisClient, mockRepo *mocks.MockUrlRepository) {
 				mockRepo.EXPECT().
 					CreateURL(ctx, mock.Anything).
-					Return(db.Url{
-						ShortCode:   "abc1234",
-						OriginalUrl: "https://example.com",
-					}, nil).
+					Return(db.Url{ShortCode: "abc1234", OriginalUrl: "https://example.com"}, nil).
 					Once()
 				mockRe.EXPECT().
 					Set(ctx, mock.Anything, "https://example.com", mock.Anything).
@@ -213,11 +213,9 @@ func TestUseCase_GenerateKey(t *testing.T) {
 			expectErr: false,
 		},
 		{
-			name: "url empty - validation error",
-			url:  "",
-			mockSetUp: func(mockRe *mocks.MockRedisClient, mockRepo *mocks.MockUrlRepository) {
-				// No calls
-			},
+			name:          "url empty - validation error",
+			url:           "",
+			mockSetUp:     func(mockRe *mocks.MockRedisClient, mockRepo *mocks.MockUrlRepository) {},
 			expectErr:     true,
 			expectErrType: urlErr.ErrValidation,
 		},
@@ -225,28 +223,10 @@ func TestUseCase_GenerateKey(t *testing.T) {
 			name: "collision retry - success on 3rd try",
 			url:  "https://retry.com",
 			mockSetUp: func(mockRe *mocks.MockRedisClient, mockRepo *mocks.MockUrlRepository) {
-				// 1st call: collision error
-				mockRepo.EXPECT().
-					CreateURL(ctx, mock.Anything).
-					Return(db.Url{}, &pgconn.PgError{Code: "23505"}).
-					Once()
-				// 2nd call: collision error
-				mockRepo.EXPECT().
-					CreateURL(ctx, mock.Anything).
-					Return(db.Url{}, &pgconn.PgError{Code: "23505"}).
-					Once()
-				// 3rd call: success
-				mockRepo.EXPECT().
-					CreateURL(ctx, mock.Anything).
-					Return(db.Url{
-						ShortCode:   "unique1",
-						OriginalUrl: "https://retry.com",
-					}, nil).
-					Once()
-				mockRe.EXPECT().
-					Set(ctx, mock.Anything, "https://retry.com", mock.Anything).
-					Return(nil).
-					Once()
+				mockRepo.EXPECT().CreateURL(ctx, mock.Anything).Return(db.Url{}, &pgconn.PgError{Code: "23505"}).Once()
+				mockRepo.EXPECT().CreateURL(ctx, mock.Anything).Return(db.Url{}, &pgconn.PgError{Code: "23505"}).Once()
+				mockRepo.EXPECT().CreateURL(ctx, mock.Anything).Return(db.Url{ShortCode: "unique1", OriginalUrl: "https://retry.com"}, nil).Once()
+				mockRe.EXPECT().Set(ctx, mock.Anything, "https://retry.com", mock.Anything).Return(nil).Once()
 			},
 			expectErr: false,
 		},
@@ -254,10 +234,7 @@ func TestUseCase_GenerateKey(t *testing.T) {
 			name: "collision exhausted - after 3 retries",
 			url:  "https://unlucky.com",
 			mockSetUp: func(mockRe *mocks.MockRedisClient, mockRepo *mocks.MockUrlRepository) {
-				mockRepo.EXPECT().
-					CreateURL(ctx, mock.Anything).
-					Return(db.Url{}, &pgconn.PgError{Code: "23505"}).
-					Times(3)
+				mockRepo.EXPECT().CreateURL(ctx, mock.Anything).Return(db.Url{}, &pgconn.PgError{Code: "23505"}).Times(3)
 			},
 			expectErr:     true,
 			expectErrType: urlErr.ErrInternal,
@@ -266,10 +243,7 @@ func TestUseCase_GenerateKey(t *testing.T) {
 			name: "db error (not unique violation) - no retry",
 			url:  "https://error.com",
 			mockSetUp: func(mockRe *mocks.MockRedisClient, mockRepo *mocks.MockUrlRepository) {
-				mockRepo.EXPECT().
-					CreateURL(ctx, mock.Anything).
-					Return(db.Url{}, errors.New("connection timeout")).
-					Once()
+				mockRepo.EXPECT().CreateURL(ctx, mock.Anything).Return(db.Url{}, errors.New("connection timeout")).Once()
 			},
 			expectErr:     true,
 			expectErrType: urlErr.ErrInternal,
@@ -278,19 +252,80 @@ func TestUseCase_GenerateKey(t *testing.T) {
 			name: "redis set error - still return code",
 			url:  "https://nosync.com",
 			mockSetUp: func(mockRe *mocks.MockRedisClient, mockRepo *mocks.MockUrlRepository) {
-				mockRepo.EXPECT().
-					CreateURL(ctx, mock.Anything).
-					Return(db.Url{
-						ShortCode:   "fail1",
-						OriginalUrl: "https://nosync.com",
-					}, nil).
-					Once()
-				mockRe.EXPECT().
-					Set(ctx, mock.Anything, "https://nosync.com", mock.Anything).
-					Return(errors.New("redis down")).
-					Once()
+				mockRepo.EXPECT().CreateURL(ctx, mock.Anything).Return(db.Url{ShortCode: "fail1", OriginalUrl: "https://nosync.com"}, nil).Once()
+				mockRe.EXPECT().Set(ctx, mock.Anything, "https://nosync.com", mock.Anything).Return(errors.New("redis down")).Once()
 			},
 			expectErr: false,
+		},
+
+		// ========== CASE MỚI — Custom Alias ==========
+		{
+			name:        "custom alias - success with logged in user",
+			url:         "https://example.com",
+			customAlias: "mylink",
+			userID:      int64Ptr(42),
+			mockSetUp: func(mockRe *mocks.MockRedisClient, mockRepo *mocks.MockUrlRepository) {
+				mockRepo.EXPECT().
+					CreateURL(ctx, mock.MatchedBy(func(p db.CreateURLParams) bool {
+						return p.ShortCode == "mylink" && p.UserID.Valid && p.UserID.Int64 == 42
+					})).
+					Return(db.Url{ShortCode: "mylink", OriginalUrl: "https://example.com"}, nil).
+					Once()
+				mockRe.EXPECT().
+					Set(ctx, "mylink", "https://example.com", mock.Anything).
+					Return(nil).
+					Once()
+			},
+			expectCode: "mylink",
+			expectErr:  false,
+		},
+		{
+			name:        "custom alias - success anonymous (userID nil)",
+			url:         "https://example.com",
+			customAlias: "publiclink",
+			userID:      nil,
+			mockSetUp: func(mockRe *mocks.MockRedisClient, mockRepo *mocks.MockUrlRepository) {
+				mockRepo.EXPECT().
+					CreateURL(ctx, mock.MatchedBy(func(p db.CreateURLParams) bool {
+						return p.ShortCode == "publiclink" && !p.UserID.Valid
+					})).
+					Return(db.Url{ShortCode: "publiclink", OriginalUrl: "https://example.com"}, nil).
+					Once()
+				mockRe.EXPECT().
+					Set(ctx, "publiclink", "https://example.com", mock.Anything).
+					Return(nil).
+					Once()
+			},
+			expectCode: "publiclink",
+			expectErr:  false,
+		},
+		{
+			name:        "custom alias - already taken, NO retry",
+			url:         "https://example.com",
+			customAlias: "taken",
+			userID:      int64Ptr(1),
+			mockSetUp: func(mockRe *mocks.MockRedisClient, mockRepo *mocks.MockUrlRepository) {
+				mockRepo.EXPECT().
+					CreateURL(ctx, mock.Anything).
+					Return(db.Url{}, &pgconn.PgError{Code: "23505"}).
+					Once() // chỉ 1 lần — verify KHÔNG retry
+			},
+			expectErr:     true,
+			expectErrType: urlErr.ErrValidation,
+		},
+		{
+			name:        "custom alias - other db error",
+			url:         "https://example.com",
+			customAlias: "somealias",
+			userID:      int64Ptr(1),
+			mockSetUp: func(mockRe *mocks.MockRedisClient, mockRepo *mocks.MockUrlRepository) {
+				mockRepo.EXPECT().
+					CreateURL(ctx, mock.Anything).
+					Return(db.Url{}, errors.New("connection timeout")).
+					Once()
+			},
+			expectErr:     true,
+			expectErrType: urlErr.ErrInternal,
 		},
 	}
 
@@ -302,7 +337,7 @@ func TestUseCase_GenerateKey(t *testing.T) {
 			tt.mockSetUp(mockRe, mockRepo)
 
 			uc := usecase.NewUseCase(mockRepo, mockRe)
-			code, err := uc.GenerateKey(ctx, tt.url)
+			code, err := uc.GenerateKey(ctx, tt.url, tt.customAlias, tt.userID) // ← THÊM 2 tham số
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -311,9 +346,17 @@ func TestUseCase_GenerateKey(t *testing.T) {
 				require.Equal(t, tt.expectErrType, urlError.Type)
 			} else {
 				require.NoError(t, err)
-				require.NotEmpty(t, code)
-				require.Len(t, code, 7)
+				if tt.expectCode != "" {
+					require.Equal(t, tt.expectCode, code) // case custom alias — check đúng code
+				} else {
+					require.NotEmpty(t, code)
+					require.Len(t, code, 7) // case random code cũ — giữ nguyên assertion
+				}
 			}
 		})
 	}
+}
+
+func int64Ptr(v int64) *int64 {
+	return &v
 }
