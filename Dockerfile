@@ -1,5 +1,5 @@
 # Stage 1: Build binary
-FROM golang:1.22-alpine AS builder
+FROM golang:1.26-alpine AS builder
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
@@ -11,7 +11,5 @@ FROM alpine:latest
 WORKDIR /app
 RUN apk --no-cache add ca-certificates
 COPY --from=builder /app/main .
-COPY --from=builder /app/.env .env
-
 EXPOSE 8080
 CMD ["./main"]
