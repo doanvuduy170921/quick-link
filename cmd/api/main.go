@@ -24,7 +24,6 @@ func init() {
 // @contact.name   Doan Vu Duy
 // @contact.url    https://github.com/doanvuduy170921
 
-// @host      localhost:8080
 // @BasePath  /
 
 // @securityDefinitions.apikey BearerAuth
