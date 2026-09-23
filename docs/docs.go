@@ -244,10 +244,12 @@ const docTemplate = `{
             ],
             "properties": {
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "doanvuduyndh@gmail.com"
                 },
                 "password": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "123456"
                 }
             }
         },
@@ -267,12 +269,14 @@ const docTemplate = `{
             ],
             "properties": {
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "doanvuduyndh@gmail.com"
                 },
                 "password": {
                     "type": "string",
                     "maxLength": 32,
-                    "minLength": 6
+                    "minLength": 6,
+                    "example": "123456"
                 }
             }
         },
@@ -283,10 +287,12 @@ const docTemplate = `{
             ],
             "properties": {
                 "custom_alias": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "test"
                 },
                 "url": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "http://google.com"
                 }
             }
         },
@@ -307,7 +313,6 @@ const docTemplate = `{
     },
     "securityDefinitions": {
         "BearerAuth": {
-            "description": "Type \"Bearer\" followed by a space and JWT token.",
             "type": "apiKey",
             "name": "Authorization",
             "in": "header"
@@ -318,8 +323,8 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8080",
-	BasePath:         "/",
+	Host:             "",
+	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "Quick-Link API",
 	Description:      "URL Shortener service with JWT auth, click analytics (goroutine/channel worker pool), Redis caching and rate limiting.",
