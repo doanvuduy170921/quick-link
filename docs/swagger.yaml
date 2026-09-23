@@ -1,10 +1,11 @@
-basePath: /
 definitions:
   http.LoginRequest:
     properties:
       email:
+        example: doanvuduyndh@gmail.com
         type: string
       password:
+        example: "123456"
         type: string
     required:
     - email
@@ -18,8 +19,10 @@ definitions:
   http.RegisterRequest:
     properties:
       email:
+        example: doanvuduyndh@gmail.com
         type: string
       password:
+        example: "123456"
         maxLength: 32
         minLength: 6
         type: string
@@ -30,8 +33,10 @@ definitions:
   http.ShortenInput:
     properties:
       custom_alias:
+        example: test
         type: string
       url:
+        example: http://google.com
         type: string
     required:
     - url
@@ -45,7 +50,6 @@ definitions:
       id:
         type: integer
     type: object
-host: localhost:8080
 info:
   contact:
     name: Doan Vu Duy
@@ -200,7 +204,6 @@ paths:
       - url
 securityDefinitions:
   BearerAuth:
-    description: Type "Bearer" followed by a space and JWT token.
     in: header
     name: Authorization
     type: apiKey

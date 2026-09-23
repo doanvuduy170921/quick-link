@@ -26,9 +26,9 @@ func NewURLHandler(useCase usecase.UseCase, ClickTracker ClickTracker) *URLHandl
 }
 
 // ShortenURL godoc
-// @Summary      Create a short URL
-// @Description  Shortens a long URL. Anonymous users get a random code (user_id = null).
-// @Description  Authenticated users may pass a custom_alias; anonymous users passing custom_alias get 401.
+// @Summary Create a short URL
+// @Description Shortens a long URL. Anonymous users get a random code (user_id = null).
+// @Description Authenticated users may pass a custom_alias; anonymous users passing custom_alias get 401.
 // @Tags         url
 // @Accept       json
 // @Produce      json
@@ -69,7 +69,7 @@ func (h *URLHandler) ShortenURL(c *gin.Context) {
 }
 
 // Redirect godoc
-// @Summary      Redirect to original URL
+// @Summary Redirect to original URL
 // @Description  Redirects to the original URL for a given short code. Tracks click asynchronously.
 // @Tags         url
 // @Produce      json

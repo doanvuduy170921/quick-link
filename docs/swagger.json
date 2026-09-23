@@ -10,8 +10,6 @@
         },
         "version": "1.0"
     },
-    "host": "localhost:8080",
-    "basePath": "/",
     "paths": {
         "/api/v1/auth/login": {
             "post": {
@@ -238,10 +236,12 @@
             ],
             "properties": {
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "doanvuduyndh@gmail.com"
                 },
                 "password": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "123456"
                 }
             }
         },
@@ -261,12 +261,14 @@
             ],
             "properties": {
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "doanvuduyndh@gmail.com"
                 },
                 "password": {
                     "type": "string",
                     "maxLength": 32,
-                    "minLength": 6
+                    "minLength": 6,
+                    "example": "123456"
                 }
             }
         },
@@ -277,10 +279,12 @@
             ],
             "properties": {
                 "custom_alias": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "test"
                 },
                 "url": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "http://google.com"
                 }
             }
         },
@@ -301,7 +305,6 @@
     },
     "securityDefinitions": {
         "BearerAuth": {
-            "description": "Type \"Bearer\" followed by a space and JWT token.",
             "type": "apiKey",
             "name": "Authorization",
             "in": "header"
