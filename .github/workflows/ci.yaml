@@ -36,4 +36,6 @@ jobs:
             docker compose pull quicklink-app &&
             docker compose up -d quicklink-app
             make migrate-up
+            cd /app &&
+            make migrate-up
           '
