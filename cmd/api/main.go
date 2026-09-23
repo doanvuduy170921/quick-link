@@ -16,20 +16,17 @@ func init() {
 	}
 }
 
-// @title           Quick-Link API
-// @version         1.0
-// @description     URL Shortener service with JWT auth, click analytics (goroutine/channel worker pool), Redis caching and rate limiting.
+// @title Quick-Link API
+// @version 1.0
+// @description URL Shortener service with JWT auth, click analytics (goroutine/channel worker pool), Redis caching and rate limiting.
 // @termsOfService  http://swagger.io/terms/
 
 // @contact.name   Doan Vu Duy
 // @contact.url    https://github.com/doanvuduy170921
 
-// @BasePath  /
-
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
-// @description Type "Bearer" followed by a space and JWT token.
 func main() {
 	// load configs
 	cfg, err := configs.LoadConfig()

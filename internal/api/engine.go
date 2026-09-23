@@ -65,11 +65,8 @@ func (s *Server) SetUpRoutes(ctx context.Context, redis infrastructure.RedisClie
 		authGroup.POST("/register", uHandler.Register)
 		authGroup.POST("/login", uHandler.Login)
 	}
-
-	// Protected Routes (Ví dụ API cần User Login - Dùng AuthMiddleware RSA)
 	protectedGroup := s.app.Group("/api/v1").Use(middleware.AuthMiddleware(jwtMgr))
 	{
-		// Sau này thêm API GET /my-links vào đây
 		_ = protectedGroup
 	}
 

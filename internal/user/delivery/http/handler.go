@@ -20,9 +20,9 @@ func NewUserHandler(useCase usecase.UserUseCase) *UserHandler {
 }
 
 // Register godoc
-// @Summary      Register a new user
-// @Tags         auth
-// @Accept       json
+// @Summary Register a new user
+// @Tags auth
+// @Accept json
 // @Produce      json
 // @Param        request body RegisterRequest true "Registration info"
 // @Success      201 {object} UserResponse
